@@ -7,15 +7,17 @@ import numpy as np
 ###TODO:
 ###Fix SN rates, probably via calculating them from the SFR
 ###Provide a proper detection efficiency (should include effects from our program's cadence)
+
+cadence_correction = 0.3 ##FIXME, may not be the best cadence handling.
 class source:
 	###A class to hold useful info for each source
 	##Contains the ID, peak r band apparent magnitude (m_r) , type Ia SN rate (n1a) , core collapse SN rate (ncc)
-	def __init__(self , ID , m_r , ncc , n1a):
+	def __init__(self , ID , m_r , ncc , n1a , zs):
 		self.ID = ID
 		self.m_r = m_r
 		self.ncc = ncc
 		self.n1a = n1a
-		
+		self.zs = zs
 	
 
 def read(): ##Reads in data file
@@ -65,7 +67,12 @@ def read(): ##Reads in data file
 				n1a = float(a[15])
 			except:
 				n1a = 0
-			source_list.append(source(ID , m_r , ncc , n1a))
+				
+			try:
+				zs = float(a[6])
+			except:
+				zs = 0
+			source_list.append(source(ID , m_r , ncc , n1a , zs))
 			
 		if "SDSS" + a[1] in our_ids:
 			ID = "SDSS" + a[1]
@@ -79,7 +86,13 @@ def read(): ##Reads in data file
 				n1a = float(a[15])
 			except:
 				n1a = 0
-			source_list.append(source(ID , m_r , ncc , n1a))
+				
+			try:
+				zs = float(a[6])
+			except:
+				zs = 0
+			source_list.append(source(ID , m_r , ncc , n1a , zs))
+
 			
 		if "BELLS" + a[1] in our_ids:
 			ID = "BELLS" + a[1]
@@ -92,7 +105,11 @@ def read(): ##Reads in data file
 				n1a = float(a[15])
 			except:
 				n1a = 0
-			source_list.append(source(ID , m_r , ncc , n1a))
+			try:
+				zs = float(a[6])
+			except:
+				n1a = 0
+			source_list.append(source(ID , m_r , ncc , n1a , zs))
 			
 	
 	return source_list
@@ -112,8 +129,8 @@ def detection_rate(slist , detection_efficiency):
 		if i.m_r < 20.8:
 			N += 1
 			
-	
-		expected_rate += detection_efficiency(i.m_r) * (i.n1a) + i.ncc * detection_efficiency(i.m_r + 2)
+		##Uncomment second half of this line to include core collapse supernovae.
+		expected_rate += detection_efficiency(i.m_r + cadence_correction) * (i.n1a / (1 + i.zs))# + i.ncc * detection_efficiency(i.m_r + 2)
 	print ("Our expected detection rate is {} per year".format(expected_rate))
 
 	
@@ -126,6 +143,7 @@ def theoretical_de(mag):
 	if mag <= 22:
 		return 1
 	return 0
+
 
 if __name__ == "__main__":
 	
