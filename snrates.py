@@ -9,25 +9,36 @@ import numpy as np
 ###Provide a proper detection efficiency (should include effects from our program's cadence)
 
 cadence_correction = 0.3 ##FIXME, may not be the best cadence handling.
+
+include_core_collapse = False ## if true, we include the core collapse sn rate in our rate calculations.
+## This includes an adjustment to the magnitudes to account for the difference in absolute magnitudes between SN types
 class source:
 	###A class to hold useful info for each source
 	##Contains the ID, peak r band apparent magnitude (m_r) , type Ia SN rate (n1a) , core collapse SN rate (ncc)
-	def __init__(self , ID , m_r , ncc , n1a , zs):
+	def __init__(self , ID , m_r , ncc , n1a , zs , SFR):
 		self.ID = ID
 		self.m_r = m_r
 		self.ncc = ncc
 		self.n1a = n1a
 		self.zs = zs
+		self.sfr = SFR
 	
 
 def read():
+	'''
+	returns a list of source objects
+	reads in the source_data.txt file, and provides the required information
+	'''
+	
 	
 	fname = "source_data.txt"
 	
 	f = open(fname)
 	
 	sources = []
-	for i in f.readlines():
+	for i in f.readlines(): ##Iterate through the lines in the file
+	
+		##Grabs relevant quantities
 		a = i.split("|")
 		name = a[18]
 		ra = a[3]
@@ -36,10 +47,14 @@ def read():
 		ncc = a[13]
 		n1a = a[15]
 		m_r = a[19]
+		SFR = a[11]
+		
 		
 		if a[0] == "Survey":
 			continue
-			
+		
+		## convert to floats, and set missing sn rates to 0. There is only one source that actually triggers this,
+		## which is the SWELLS source, which is also lacking a SFR
 		m_r = float(m_r)
 		zs = float(zs)
 		try:
@@ -51,7 +66,7 @@ def read():
 			ncc = float(ncc)
 		except:
 			ncc = 0
-		sources.append(source(name , m_r , ncc , n1a , zs ))
+		sources.append(source(name , m_r , ncc , n1a , zs , SFR))
 	return sources
 		
 def detection_rate(slist , detection_efficiency):
@@ -68,8 +83,10 @@ def detection_rate(slist , detection_efficiency):
 		if i.m_r < 20.8:
 			N += 1
 			
-		##Uncomment second half of this line to include core collapse supernovae.
-		expected_rate += detection_efficiency(i.m_r + cadence_correction) * (i.n1a / (1 + i.zs))# + i.ncc * detection_efficiency(i.m_r + 2)
+		if include_core_collapse:
+			expected_rate += detection_efficiency(i.m_r + cadence_correction) * (i.n1a / (1 + i.zs)) + i.ncc * detection_efficiency(i.m_r + 2)
+		else:
+			expected_rate += detection_efficiency(i.m_r + cadence_correction) * (i.n1a / (1 + i.zs))
 	print ("Our expected detection rate is {} per year".format(expected_rate))
 
 	
