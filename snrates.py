@@ -20,101 +20,40 @@ class source:
 		self.zs = zs
 	
 
-def read(): ##Reads in data file
+def read():
 	
-	our_ids = []
-	magnitudes = []
+	fname = "source_data.txt"
 	
-	##Somewhat suboptimum, but reading in two files lets us filter out sources
-	##which are outside of our sample.
+	f = open(fname)
 	
-	fname_1 = "peak_mags.txt" ##Data file with the same info as the google sheet
-	fname_2 = "all_data.txt" ##Data file with all relevent info (and some extra) from Yiping's Paper
-		
-	f = open(fname_1)
-	
-	##First we read in peak_mags, mostly to get a list of source id's that are in our search program.
-
-	for i in f.readlines():
-		a = i.split()
-		if a[0] == "Source":
-			continue
-		our_ids.append(a[0])
-		magnitudes.append(float(a[4]))
-	
-	f.close()
-	
-	f = open(fname_2)
-	
-	##Read through second file, gather all info for our sources
-	
-	source_list = []
-
-	##This bit is somewhat messsy, but it is functional
+	sources = []
 	for i in f.readlines():
 		a = i.split("|")
-		if len(a) < 3:
+		name = a[18]
+		ra = a[3]
+		dec = a[4]
+		zs = a[6]
+		ncc = a[13]
+		n1a = a[15]
+		m_r = a[19]
+		
+		if a[0] == "Survey":
 			continue
-		if "SWELLS" + a[1] in our_ids:
-			ID = "SWELLS" + a[1]
-			m_r = magnitudes[our_ids.index(ID)]
-			try:
-				ncc = float(a[13])
-			except:
-				ncc = 0
-				
-			try:
-				n1a = float(a[15])
-			except:
-				n1a = 0
-				
-			try:
-				zs = float(a[6])
-			except:
-				zs = 0
-			source_list.append(source(ID , m_r , ncc , n1a , zs))
 			
-		if "SDSS" + a[1] in our_ids:
-			ID = "SDSS" + a[1]
-			m_r = magnitudes[our_ids.index(ID)]
-			try:
-				ncc = float(a[13])
-			except:
-				ncc = 0
-				
-			try:
-				n1a = float(a[15])
-			except:
-				n1a = 0
-				
-			try:
-				zs = float(a[6])
-			except:
-				zs = 0
-			source_list.append(source(ID , m_r , ncc , n1a , zs))
-
+		m_r = float(m_r)
+		zs = float(zs)
+		try:
+			n1a = float(n1a)
+		except:
+			n1a = 0
 			
-		if "BELLS" + a[1] in our_ids:
-			ID = "BELLS" + a[1]
-			m_r = magnitudes[our_ids.index(ID)]
-			try:
-				ncc = float(a[13])
-			except:
-				ncc = 0
-			try:
-				n1a = float(a[15])
-			except:
-				n1a = 0
-			try:
-				zs = float(a[6])
-			except:
-				n1a = 0
-			source_list.append(source(ID , m_r , ncc , n1a , zs))
-			
-	
-	return source_list
-	
-	
+		try:
+			ncc = float(ncc)
+		except:
+			ncc = 0
+		sources.append(source(name , m_r , ncc , n1a , zs ))
+	return sources
+		
 def detection_rate(slist , detection_efficiency):
 	'''
 	Takes in a list of source objects, and a function called detection_efficiency
