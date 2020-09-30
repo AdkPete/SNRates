@@ -1,4 +1,5 @@
 import numpy as np
+from read_slate import *
 
 ###Created by Peter Craig
 ###pac4607@rit.edu
@@ -8,9 +9,9 @@ import numpy as np
 ###Fix SN rates, probably via calculating them from the SFR
 ###Provide a proper detection efficiency (should include effects from our program's cadence)
 
-cadence_correction = 0.3 ##FIXME, may not be the best cadence handling.
 
-include_core_collapse = False ## if true, we include the core collapse sn rate in our rate calculations.
+
+include_core_collapse = True ## if true, we include the core collapse sn rate in our rate calculations.
 ## This includes an adjustment to the magnitudes to account for the difference in absolute magnitudes between SN types
 class source:
 	###A class to hold useful info for each source
@@ -84,20 +85,30 @@ def detection_rate(slist , detection_efficiency):
 			N += 1
 			
 		if include_core_collapse:
-			expected_rate += detection_efficiency(i.m_r + cadence_correction) * (i.n1a / (1 + i.zs)) + i.ncc * detection_efficiency(i.m_r + 2)
+			expected_rate += detection_efficiency(i) * (i.n1a / (1 + i.zs)) + i.ncc * detection_efficiency(i , CC = True)
 		else:
-			expected_rate += detection_efficiency(i.m_r + cadence_correction) * (i.n1a / (1 + i.zs))
+			expected_rate += detection_efficiency(i) * (i.n1a / (1 + i.zs))
 	print ("Our expected detection rate is {} per year".format(expected_rate))
 
 	
 	
-def theoretical_de(mag):
+def theoretical_de(source , CC = False):
 	'''
 	This is an over-simplified detection efficiency.
 	Uses a step function, returns 0 at magnitudes greater than some threshold, 1 otherwise.
 	'''
-	if mag <= 22:
+	
+	avg_cadence = np.mean(get_obj_cadence(source.ID))
+	
+	typical_worst_case = avg_cadence / 2.0 ##Largest distance from peak
+	
+	mag = source.m_r + typical_worst_case.days * .03 ##FIZME, pull better value for SN light curve, improve cadence handling.
+	
+	if mag <= 22.5 and not CC:
 		return 1
+	elif source.m_r + 2 < 22.5 and CC:
+		return 1
+	
 	return 0
 
 
