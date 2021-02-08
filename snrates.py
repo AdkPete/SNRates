@@ -1,5 +1,6 @@
 import numpy as np
 from read_slate import *
+import scipy.integrate as integrate
 
 ###Created by Peter Craig
 ###pac4607@rit.edu
@@ -115,10 +116,20 @@ def imf(M1 = 8 , M2 = 50 , Mmin = 0.1 , Mmax = 125):
 
 	'''
 	Computes IMF based coefficients for sn rate computations
-	see Shu et al 2018 (Default values from here
+	see Shu et al 2018 (Default values from here)
+	
 	'''
 	
-	return 0
+	##Using a salpeter IMF
+	
+	def phi(M):
+		return M ** -2.35
+	sn_candidates = integrate.quad(phi , M1 , M2  )[0]
+	
+	def mphi(M):
+		return M * phi(M)
+	total = integrate.quad(mphi , Mmin , Mmax)[0]
+	return sn_candidates / total
 
 
 if __name__ == "__main__":

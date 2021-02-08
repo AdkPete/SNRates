@@ -8,7 +8,10 @@ class TestSNRMethods(unittest.TestCase):
 		
 		k_cc = snr.imf()
 		
-		self.assertEqual(k_cc , .007)
+		self.assertAlmostEqual(k_cc , .007 , 4)
 
+		k_a = snr.imf(M1 = 3 , M2 = 8)
+		self.assertAlmostEqual(k_a , .021 , 3)
+		
 if __name__ == "__main__":
 	unittest.main()
