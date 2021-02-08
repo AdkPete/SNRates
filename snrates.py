@@ -35,7 +35,7 @@ def read():
 	fname = "source_data.txt"
 	
 	f = open(fname)
-	
+	 
 	sources = []
 	for i in f.readlines(): ##Iterate through the lines in the file
 	
@@ -102,17 +102,27 @@ def theoretical_de(source , CC = False):
 	
 	typical_worst_case = avg_cadence / 2.0 ##Largest distance from peak
 	
-	mag = source.m_r + typical_worst_case.days * .03 ##FIZME, pull better value for SN light curve, improve cadence handling.
+	mag = source.m_r + typical_worst_case.days * .03 ##FIXME, pull better value for SN light curve, improve cadence handling.
+	m50 = 22.5
+	if mag <= m50 and not CC:
+		return 1
+	elif source.m_r + 1.5 < m50 and CC:
+		return 1
 	
-	if mag <= 22.5 and not CC:
-		return 1
-	elif source.m_r + 2 < 22.5 and CC:
-		return 1
+	return 0
+	
+def imf(M1 = 8 , M2 = 50 , Mmin = 0.1 , Mmax = 125):
+
+	'''
+	Computes IMF based coefficients for sn rate computations
+	see Shu et al 2018 (Default values from here
+	'''
 	
 	return 0
 
 
 if __name__ == "__main__":
-	
+	## Kyle's number: 1.1
 	sl = read()
 	detection_rate(sl , theoretical_de)
+	
