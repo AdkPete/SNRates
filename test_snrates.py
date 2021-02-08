@@ -13,5 +13,14 @@ class TestSNRMethods(unittest.TestCase):
 		k_a = snr.imf(M1 = 3 , M2 = 8)
 		self.assertAlmostEqual(k_a , .021 , 3)
 		
+	def test_NCC(self):
+		
+		kcc = snr.imf()
+		
+		SFR = 10
+		zs = 0
+		
+		self.assertAlmostEqual(snr.ncc(SFR , zs , kcc = kcc) , .07 , 2)
+		
 if __name__ == "__main__":
 	unittest.main()

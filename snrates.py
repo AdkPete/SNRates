@@ -130,6 +130,12 @@ def imf(M1 = 8 , M2 = 50 , Mmin = 0.1 , Mmax = 125):
 		return M * phi(M)
 	total = integrate.quad(mphi , Mmin , Mmax)[0]
 	return sn_candidates / total
+	
+def ncc(SFR , z , kcc = None):
+	if kcc == None:
+		kcc = imf()
+		
+	return SFR * kcc / (1 + z)
 
 
 if __name__ == "__main__":
