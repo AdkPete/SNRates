@@ -1,5 +1,6 @@
 import unittest
 import snrates as snr
+import integrator as integ
 
 class TestSNRMethods(unittest.TestCase):
 
@@ -38,5 +39,18 @@ class TestSNRMethods(unittest.TestCase):
 		self.assertAlmostEqual(snr.ncc(SFR , zs) , .019 , 3)
 		#self.assertAlmostEqual(snr.n1a(SFR , zs) , .0023 , 4)
 		self.assertAlmostEqual(snr.n1a(6.3 , 0.63) , .0035 , 4)
+		
+		
+class TestIntegratorMethods(unittest.TestCase):
+
+		
+	def test_squad(self):
+		
+		def f1(x):
+			return x
+		##Test integration over f(x) = x from 0 to 1
+		self.assertAlmostEqual(0.5 , integ.squad(f1 , 0 , 1))
+		
+
 if __name__ == "__main__":
 	unittest.main()
