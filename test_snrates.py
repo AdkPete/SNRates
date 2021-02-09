@@ -22,5 +22,21 @@ class TestSNRMethods(unittest.TestCase):
 		
 		self.assertAlmostEqual(snr.ncc(SFR , zs , kcc = kcc) , .07 , 2)
 		
+	def test_SFH(self):
+		SFR = 10
+		zs = 0.5
+		t = snr.time(zs)
+
+		self.assertAlmostEqual(10 , snr.SFH(SFR , t , zs))
+		
+		
+		
+	def test_NIa(self):
+		
+		zs = 0.93
+		SFR = 5.3
+		self.assertAlmostEqual(snr.ncc(SFR , zs) , .019 , 3)
+		#self.assertAlmostEqual(snr.n1a(SFR , zs) , .0023 , 4)
+		self.assertAlmostEqual(snr.n1a(6.3 , 0.63) , .0035 , 4)
 if __name__ == "__main__":
 	unittest.main()

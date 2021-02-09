@@ -1,6 +1,10 @@
 import numpy as np
 from read_slate import *
 import scipy.integrate as integrate
+from astropy.cosmology import FlatLambdaCDM ,  z_at_value
+import astropy.units as u
+
+cosmo = FlatLambdaCDM(H0=67.8, Om0=0.308, Tcmb0=2.725)
 
 ###Created by Peter Craig
 ###pac4607@rit.edu
@@ -137,9 +141,50 @@ def ncc(SFR , z , kcc = None):
 		
 	return SFR * kcc / (1 + z)
 
+def red(t):
+	t *= u.Gyr
+	z = z_at_value(cosmo.age , t)
+	return z
+	
+def time(z):
+	#t0 = cosmo.age(z = 0).to(u.Gyr).value
+	return cosmo.age(z).to(u.Gyr).value
+	
+	
+def SFH(SFR , t , zs):
+
+	SFH = SFR *  ( ( (1 + red(t)) / (1 + zs)) ** 2.7 )
+	SFH *= (1 +  ( ( 1 + zs) / 2.9 ) ) ** 5.6 
+	SFH /= (1 + (1 + red(t) ) / 2.9 ) ** 5.6
+	
+	return SFH
+	
+	
+def fD(td):
+
+	return td ** (-1.07)
+	
+	
+def n1a(SFR , z , eta = 0.04 , CIa = None):
+
+
+	if CIa == None:
+		CIa = imf(M1 = 3 , M2 = 8)	
+		
+	def integrand_1(td):
+		return SFH(SFR , time(z) - td , z) * fD(td)
+	
+	tmin = 4.5e-5
+	top_int = integrate.quad(integrand_1 , tmin , time(z))[0]
+	
+	bottom_int = integrate.quad(fD , tmin , time(0))[0]
+	zs = z
+	NIA= eta * CIa * top_int / ( ( 1 + zs ) * bottom_int)
+	return NIA
 
 if __name__ == "__main__":
 	## Kyle's number: 1.1
 	sl = read()
-	detection_rate(sl , theoretical_de)
+	#detection_rate(sl , theoretical_de)
+	print (red(0.93))
 	
