@@ -57,6 +57,15 @@ class TestIntegratorMethods(unittest.TestCase):
 			return x
 		##Test integration over f(x) = x from 0 to 1
 		self.assertAlmostEqual(0.5 , integ.right_rect(f1 , 0 , 1) , 4)
+		
+	def test_comp(self):
+		def f1(x):
+				return x
+		
+		##Test integration over f(x) = x from 0 to 1
+		self.assertAlmostEqual(0.5 , integ.composite(f1 , 0 , .1 , 1))
+
+		
 
 if __name__ == "__main__":
 	unittest.main()

@@ -62,3 +62,30 @@ def right_rect(f , xmin  , xmax , N = 100000):
 		res += f(xmax) * width
 	
 	return res
+
+def composite(f , xminr , xmin , xmax):
+	
+	'''
+	Performes numerical quadrature on the given function
+	Uses a combination of squad and right rectangle
+	
+	evaluates the integral of f(x) from xmin to xmax
+
+	Parameters
+	__________
+
+	f : function : The function to be integrated. Should take one argument
+	xmin : float : Lower integration bound for squad
+	xmax : float : Upper integration bound for squad
+	xminr : float : Lower integration bound for right rectangle
+
+	Returns
+	_______
+
+	Returns the value of the computed integral
+
+	'''
+	
+	res = squad(f , xmin , xmax)
+	res += right_rect(f , xminr , xmin)
+	return res
