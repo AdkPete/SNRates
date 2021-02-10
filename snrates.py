@@ -1,10 +1,11 @@
 import numpy as np
 from read_slate import *
 import scipy.integrate as integrate
-from astropy.cosmology import FlatLambdaCDM ,  z_at_value
+from astropy.cosmology import FlatLambdaCDM ,  z_at_value , Planck15
 import astropy.units as u
+import integrator as integ
 
-cosmo = FlatLambdaCDM(H0=67.8, Om0=0.308, Tcmb0=2.725)
+cosmo = Planck15 #FlatLambdaCDM(H0=67.8, Om0=0.308)
 
 ###Created by Peter Craig
 ###pac4607@rit.edu
@@ -174,10 +175,10 @@ def n1a(SFR , z , eta = 0.04 , CIa = None):
 	def integrand_1(td):
 		return SFH(SFR , time(z) - td , z) * fD(td)
 	
-	tmin = 4.5e-5
-	top_int = integrate.quad(integrand_1 , tmin , time(z))[0]
+	tmin = 1e-5
+	top_int = integ.composite(integrand_1 , 0 , tmin , time(z) , N = 50)
 	
-	bottom_int = integrate.quad(fD , tmin , time(0))[0]
+	bottom_int = integ.composite(fD , 0 , tmin , time(0) , N = 50	)
 	zs = z
 	NIA= eta * CIa * top_int / ( ( 1 + zs ) * bottom_int)
 	return NIA

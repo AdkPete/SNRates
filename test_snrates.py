@@ -36,9 +36,23 @@ class TestSNRMethods(unittest.TestCase):
 		
 		zs = 0.93
 		SFR = 5.3
+		alpha = -0.1895318717883241
 		self.assertAlmostEqual(snr.ncc(SFR , zs) , .019 , 3)
-		#self.assertAlmostEqual(snr.n1a(SFR , zs) , .0023 , 4)
-		self.assertAlmostEqual(snr.n1a(6.3 , 0.63) , .0035 , 4)
+		self.assertAlmostEqual(snr.n1a(SFR , zs) * (zs ** alpha) , .0023 , 4)
+		
+		zs = 0.63
+		SFR = 6.3
+		alpha = -0.1895318717883241
+		self.assertAlmostEqual(snr.ncc(SFR , zs) , .027 , 3)
+		self.assertAlmostEqual(snr.n1a(SFR , zs) * (zs ** alpha), .0035 , 4)
+		#self.assertAlmostEqual(snr.n1a(6.3 , 0.63) , .0035 , 4)
+		
+		zs = 0.20
+		SFR = 2.5
+		alpha = -0.1895318717883241
+		self.assertAlmostEqual(snr.ncc(SFR , zs) , .015 , 3)
+		self.assertAlmostEqual(snr.n1a(SFR , zs) * (zs ** alpha), .0022 , 4)
+		#self.assertAlmostEqual(snr.n1a(6.3 , 0.63) , .0035 , 4)
 		
 		
 class TestIntegratorMethods(unittest.TestCase):
@@ -56,14 +70,14 @@ class TestIntegratorMethods(unittest.TestCase):
 		def f1(x):
 			return x
 		##Test integration over f(x) = x from 0 to 1
-		self.assertAlmostEqual(0.5 , integ.right_rect(f1 , 0 , 1) , 4)
+		self.assertAlmostEqual(0.5 , integ.right_rect(f1 , 0 , 1 , N = 100000) , 4)
 		
 	def test_comp(self):
 		def f1(x):
 				return x
 		
 		##Test integration over f(x) = x from 0 to 1
-		self.assertAlmostEqual(0.5 , integ.composite(f1 , 0 , .1 , 1))
+		self.assertAlmostEqual(0.5 , integ.composite(f1 , 0 , .1 , 1 , 100000))
 
 		
 
