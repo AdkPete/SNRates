@@ -4,7 +4,7 @@ import scipy.integrate as integrate
 from astropy.cosmology import FlatLambdaCDM ,  z_at_value , Planck15
 import astropy.units as u
 import integrator as integ
-
+from os import path
 cosmo = Planck15 #FlatLambdaCDM(H0=67.8, Om0=0.308)
 
 ###Created by Peter Craig
@@ -22,13 +22,23 @@ include_core_collapse = True ## if true, we include the core collapse sn rate in
 class source:
 	###A class to hold useful info for each source
 	##Contains the ID, peak r band apparent magnitude (m_r) , type Ia SN rate (n1a) , core collapse SN rate (ncc)
-	def __init__(self , ID , m_r , ncc , n1a , zs , SFR):
+	def __init__(self , ID , m_r , zs , SFR , SFR_err):
 		self.ID = ID
 		self.m_r = m_r
-		self.ncc = ncc
-		self.n1a = n1a
+		self.ncc = 0
+		self.n1a = 0
 		self.zs = zs
 		self.sfr = SFR
+		self.sfr_err = SFR_err
+		self.err_ncc = 0
+		self.err_n1a = 0
+		
+		self.compute_snrates()
+		
+	def compute_snrates(self):
+		
+		self.ncc = ncc(self.sfr , self.sfr_err, self.zs)
+		self.n1a = n1a(self.sfr , self.sfr_err , self.zs)
 	
 
 def read():
@@ -39,6 +49,14 @@ def read():
 	
 	
 	fname = "source_data.txt"
+	
+	npfname = "sources.npy"
+	if path.exists(npfname):
+		print ("reading sources from numpy file")
+		a = np.load(npfname , allow_pickle = True)
+		
+		return a
+	
 	
 	f = open(fname)
 	 
@@ -73,7 +91,8 @@ def read():
 			ncc = float(ncc)
 		except:
 			ncc = 0
-		sources.append(source(name , m_r , ncc , n1a , zs , SFR))
+		sources.append(source(name , m_r , zs , SFR))
+	np.save(npfname , sources)
 	return sources
 		
 def detection_rate(slist , detection_efficiency):
@@ -136,11 +155,16 @@ def imf(M1 = 8 , M2 = 50 , Mmin = 0.1 , Mmax = 125):
 	total = integrate.quad(mphi , Mmin , Mmax)[0]
 	return sn_candidates / total
 	
-def ncc(SFR , z , kcc = None):
+def ncc(SFR ,SFR_err, z, kcc = None):
+	'''
+	computes core collapse sn rate
+	returns [ Ncc , Ncc_err ]
+	'''
+	
 	if kcc == None:
 		kcc = imf()
 		
-	return SFR * kcc / (1 + z)
+	return [ SFR * kcc / (1 + z) , SFR_err * kcc / (1 + z) ]
 
 def red(t):
 	t *= u.Gyr
@@ -166,9 +190,13 @@ def fD(td):
 	return td ** (-1.07)
 	
 	
-def n1a(SFR , z , eta = 0.04 , CIa = None):
+def n1a(SFR , SFR_err , z , eta = 0.04 , CIa = None):
 
-
+	'''
+	computes an expected Type Ia supernova rate based on the redshift and star formation rate
+	returns the sn rate
+	'''
+	
 	if CIa == None:
 		CIa = imf(M1 = 3 , M2 = 8)	
 		
@@ -181,11 +209,13 @@ def n1a(SFR , z , eta = 0.04 , CIa = None):
 	bottom_int = integ.composite(fD , 0 , tmin , time(0) , N = 50	)
 	zs = z
 	NIA= eta * CIa * top_int / ( ( 1 + zs ) * bottom_int)
-	return NIA
+	return [ NIA , NIA * SFR_err / SFR ]
+	
+def model_1(sources):
+	return 0
 
 if __name__ == "__main__":
 	## Kyle's number: 1.1
 	sl = read()
-	#detection_rate(sl , theoretical_de)
-	print (red(0.93))
+	
 	
