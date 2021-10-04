@@ -47,8 +47,8 @@ class TestSNRMethods(unittest.TestCase):
 		alpha = -0.1895318717883241
 		
 		sample_source = snr.source("Sample" , 20 , zs  , SFR , SFR_err)
-		self.assertAlmostEqual(sample_source.ncc[0] , .019 , 3)
-		self.assertAlmostEqual(sample_source.n1a[0] , .0023 , 4)
+		self.assertAlmostEqual(sample_source.ncc , .019 , 3)
+		self.assertAlmostEqual(sample_source.n1a , .0023 , 4)
 		
 		
 		

@@ -26,7 +26,7 @@ def squad(f , xmin  , xmax):
 	res = scipy.integrate.quad(f , xmin , xmax)[0]
 	return res
 
-def right_rect(f , xmin  , xmax , N = 100000):
+def right_rect(f , xmin  , xmax , N = 1000):
 	'''
 	Performes numerical quadrature on the given function
 	Uses a right-evaluated rectangle rule
@@ -63,7 +63,7 @@ def right_rect(f , xmin  , xmax , N = 100000):
 	
 	return res
 
-def composite(f , xminr , xmin , xmax):
+def composite(f , xminr , xmin , xmax, N = None):
 	
 	'''
 	Performes numerical quadrature on the given function
@@ -87,5 +87,8 @@ def composite(f , xminr , xmin , xmax):
 	'''
 	
 	res = squad(f , xmin , xmax)
-	res += right_rect(f , xminr , xmin)
+	if N == None:
+		res += right_rect(f , xminr , xmin)
+	else:
+		res += right_rect(f, xminr , xmin , N)
 	return res

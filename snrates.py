@@ -5,6 +5,8 @@ from astropy.cosmology import FlatLambdaCDM ,  z_at_value , Planck15
 import astropy.units as u
 import integrator as integ
 from os import path
+import datetime
+from read_slate import get_obs
 cosmo = Planck15 #FlatLambdaCDM(H0=67.8, Om0=0.308)
 
 ###Created by Peter Craig
@@ -22,7 +24,7 @@ include_core_collapse = True ## if true, we include the core collapse sn rate in
 class source:
 	###A class to hold useful info for each source
 	##Contains the ID, peak r band apparent magnitude (m_r) , type Ia SN rate (n1a) , core collapse SN rate (ncc)
-	def __init__(self , ID , m_r , zs , SFR , SFR_err):
+	def __init__(self , ID , m_r , zs , SFR , SFR_err , n1a , n1a_err , ncc , ncc_err):
 		self.ID = ID
 		self.m_r = m_r
 		self.ncc = 0
@@ -30,37 +32,45 @@ class source:
 		self.zs = zs
 		self.sfr = SFR
 		self.sfr_err = SFR_err
-		self.err_ncc = 0
-		self.err_n1a = 0
+
+		self.ncc = ncc
+		self.ncc_err = ncc_err
+		self.n1a = n1a
+		self.n1a_err = n1a_err
 		
-		self.compute_snrates()
+		#self.compute_snrates()
 		
 	def compute_snrates(self):
 		
-		self.ncc = ncc(self.sfr , self.sfr_err, self.zs)
-		self.n1a = n1a(self.sfr , self.sfr_err , self.zs)
+		ncc_vals = ncc(self.sfr , self.sfr_err, self.zs)
+		n1a_vals = n1a(self.sfr , self.sfr_err, self.zs)
+		self.ncc = ncc_vals[0]
+		self.ncc_err = ncc_vals[1]
+		self.n1a = n1a_vals[0]
+		self.n1a_err = n1a_vals[1]
 	
 
-def read():
+def read(rescale=True):
 	'''
 	returns a list of source objects
 	reads in the source_data.txt file, and provides the required information
 	'''
-	
+
 	
 	fname = "source_data.txt"
-	
+	'''
 	npfname = "sources.npy"
 	if path.exists(npfname):
 		print ("reading sources from numpy file")
 		a = np.load(npfname , allow_pickle = True)
 		
 		return a
-	
+	'''
 	
 	f = open(fname)
 	 
 	sources = []
+	tsnr = 0
 	for i in f.readlines(): ##Iterate through the lines in the file
 	
 		##Grabs relevant quantities
@@ -70,10 +80,12 @@ def read():
 		dec = a[4]
 		zs = a[6]
 		ncc = a[13]
+		ncc_err = a[14]
 		n1a = a[15]
+		n1a_err = a[16]
 		m_r = a[19]
 		SFR = a[11]
-		
+		SFR_err = a[12]
 		
 		if a[0] == "Survey":
 			continue
@@ -83,16 +95,31 @@ def read():
 		m_r = float(m_r)
 		zs = float(zs)
 		try:
+			SFR = float(SFR)
+			SFR_err = float(SFR_err)
 			n1a = float(n1a)
-		except:
-			n1a = 0
-			
-		try:
+			n1a_err = float(n1a_err)
 			ncc = float(ncc)
+			ncc_err = float(ncc_err)
+			
 		except:
+			SFR = 0
+			SFR_err = 0
+			n1a = 0
+			n1a_err = 0
 			ncc = 0
-		sources.append(source(name , m_r , zs , SFR))
-	np.save(npfname , sources)
+			ncc_err = 0
+			
+		if rescale:
+			n1a /= (1 + zs) ** 2
+			n1a_err /= (1 + zs) ** 2
+			ncc /= (1 + zs) ** 2
+			ncc_err /= (1 + zs) ** 2
+		
+		sources.append(source(name , m_r , zs , SFR , SFR_err , n1a , n1a_err , ncc , ncc_err))
+		tsnr += n1a + ncc
+	print ("total snr is {}".format(tsnr))
+	#np.save(npfname , sources)
 	return sources
 		
 def detection_rate(slist , detection_efficiency):
@@ -212,10 +239,128 @@ def n1a(SFR , SFR_err , z , eta = 0.04 , CIa = None):
 	return [ NIA , NIA * SFR_err / SFR ]
 	
 def model_1(sources):
-	return 0
 
+	''' 
+	Over-simplifide model. Assumes that we get 100% coverage and
+	100% detection efficiency on all sources
+	'''
+	
+	survey_length = 2
+	N = 0
+	N_err = 0
+	for i in sources:
+		N += i.ncc + i.n1a
+		if not (np.isnan(i.ncc_err) or (np.isnan(i.n1a_err))):
+			N_err += i.ncc_err ** 2 + i.n1a_err ** 2
+		
+	return N * survey_length , survey_length * np.sqrt(N_err)
+
+def model_2(sources , de):
+	'''
+	Simple model. Assumes 100% coverage, uses real detection efficiency curves
+	'''
+	survey_length = 1.0
+	N = 0
+	N_err = 0
+	for i in sources:
+		N += i.ncc * de(i.m_r + 1.5) + i.n1a * de(i.m_r)
+		if not (np.isnan(i.ncc_err) or (np.isnan(i.n1a_err))):
+			N_err += (i.ncc_err * de(i.m_r + 1.5)) ** 2 + (i.n1a_err * de(i.m_r)) ** 2
+	return N * survey_length , survey_length * np.sqrt(N_err)
+	
+
+def model_3(sources , de):
+	'''
+	Full snrate model
+	'''
+	
+	start = datetime.datetime(2018,12,31 , 0 , 0 , 0 , tzinfo = datetime.timezone.utc)
+	
+	end = datetime.datetime(2019 , 12 ,  31 , 0 , 0 ,0 , tzinfo = datetime.timezone.utc)
+	inc = datetime.timedelta(days = 1.0)
+	
+	N_err = 0
+	N = 0
+	Ncc = 0
+	N1a = 0
+	Nccerr = 0
+	N1aerr = 0
+	
+	##Iterate over all sources in our sample
+	for i in sources:
+		obs = np.array(get_obs(i.ID))
+		day = start
+		
+		##Sum expected yield from each day 
+		while day <= end:
+			time_to_obs = np.amin(abs(obs - day))
+			
+			fcc = de(i.m_r , time_to_obs.days , cc = True)
+			f1a = de(i.m_r , time_to_obs.days)
+			
+			fcc_err = 0.1
+			f1a_err = 0.1
+			Ncc += i.ncc * fcc / 365.0
+			N1a += i.n1a * f1a / 365.0
+			N1aerr  += i.n1a_err ** 2
+			Nccerr  += i.ncc_err ** 2
+			N += ( i.ncc * fcc + i.n1a * f1a) * 1 / 365.0
+			if not (np.isnan(i.ncc_err) or (np.isnan(i.n1a_err))):
+				N_err +=  (i.ncc_err ) ** 2 + (i.n1a_err) ** 2  + (i.ncc * f1a_err) ** 2 + (i.n1a * fcc_err ) ** 2
+			day += inc
+			
+			
+	print (Ncc, np.sqrt(Nccerr / 365))
+	print (N1a , np.sqrt(N1aerr / 365))
+	
+	return N, np.sqrt(N_err) / np.sqrt(365)
+	
 if __name__ == "__main__":
 	## Kyle's number: 1.1
-	sl = read()
+	sl = read(rescale = True)
+	def kde(m , t = 0 , cc = False):
+		if cc:
+			m += 1
+		
+		m += t * 0.1
+		if m > 23:
+			return 0
+		elif m > 22.5:
+			return 0.2
+		elif m > 22:
+			return 0.5
+		elif m > 21.5:
+			return 0.75
+		return 1
+		
+	def final_de(m , t=0 , cc = False):
+		if cc:
+			m += 1.75
+		
+		m += t * 0.087
+		mlim = 24.7
+		m50 = mlim-1.5
+		alpha = 1.85
+		
+		
+		return 1.0/( 1 + np.exp(alpha * ( m-m50 ) ))
+		
+	def toy_de(m , t = 0 , cc = False):
+		if cc:
+			m += 1
+		m += t * 0.087
+		if m > 24:
+			return 0
+		return 1
+		
+	N,Nerr = model_3(sl , final_de)
+	print (N,Nerr)
+	'''
+	err = 0
+	for i in sl:
+		if np.isnan(i.n1a_err):
+			continue
+		err += i.ncc_err ** 2 + i.n1a_err ** 2
 	
-	
+	print (err)
+	'''
